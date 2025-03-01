@@ -1,11 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, File
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
+from starlette.datastructures import UploadFile
 
 from auth.crud import get_current_user
 from core.models.db_helper import db_helper
-from user.schemas import UserCreate, User
+from user.schemas import UserCreate, User, UserModel, Photo
 from user import crud as user
 
 
@@ -32,9 +33,17 @@ async def register_user(user_in: UserCreate,
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail='User with this email already exists')
 
 
-@router.get('/show/me/', response_model=User)
+@router.get('/show/me/', response_model=UserModel)
 async def show_me(current_user = Depends(get_current_user),
                   session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
     user_id = current_user['user_id']
     return await user.get_me(user_id=user_id, session=session)
+
+
+@router.post('/registrate/upload_photo/{user_id}', response_model=Photo)
+async def upload_photo(current_user = Depends(get_current_user),
+                  session: AsyncSession = Depends(db_helper.scoped_session_dependency),
+                  file: UploadFile = File(...), ):
+    user_id = current_user.id
+    return await user.upload_photo(user_id=user_id, session=session, file=file)
 

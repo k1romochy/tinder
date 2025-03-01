@@ -1,13 +1,23 @@
+import os
 from typing import Type
 
 import bcrypt
+from dotenv import load_dotenv
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, File
 from sqlalchemy.orm import selectinload
 
 from core.models import User, Preferences
 from user.schemas import UserCreate, UserModel
+
+from clients.s3.S3Client import s3_client
+
+
+load_dotenv()
+
+AWS_BUCKET_NAME = os.getenv('AWS_BUCKET_NAME')
+AWS_REGION = os.getenv('AWS_REGION')
 
 
 async def get_users(session: AsyncSession):
@@ -76,3 +86,18 @@ async def get_me(user_id: int, session: AsyncSession):
     else:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+
+async def upload_photo(user_id, session: AsyncSession, file):
+    user = await session.execute(select(User).where(User.id==user_id))
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    file_extension = file.filename.split(".")[-1]
+    file_key = f"users/{user_id}.{file_extension}"
+    s3_client.upload_fileobj(file.file, AWS_BUCKET_NAME, file_key, ExtraArgs={"ACL": "public-read"})
+
+    file_url = f"https://{AWS_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com/{file_key}"
+    user.photo_url = file_url
+    await session.commit()
+
+    return {"photo_url": file_url}

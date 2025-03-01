@@ -27,3 +27,5 @@ class UserCreate(UserModel):
     password: str
 
 
+class Photo(BaseModel):
+    url: str

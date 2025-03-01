@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Enum as SQLEnum, ForeignKey
 from sqlalchemy.orm import mapped_column, Mapped, relationship
