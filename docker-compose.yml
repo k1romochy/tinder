@@ -3,11 +3,12 @@ services:
     build: .
     command: >
       sh -c "
+      echo 'Waiting for PostgreSQL...' &&
       until pg_isready -h postgres -p 5432 -q; do
         echo 'Waiting for PostgreSQL...';
         sleep 5;
-      done;
-      psql -U postgres -d tinder -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
+      done &&
+      echo 'PostgreSQL is ready!' &&
       alembic upgrade head &&
       uvicorn app.run:app --host 0.0.0.0 --port 8000 --reload
       "
@@ -23,7 +24,7 @@ services:
       - "8000:8000"
 
   postgres:
-    image: postgres:latest
+    image: postgis/postgis:latest
     container_name: postgres_container_tinder
     restart: always
     ports:

@@ -8,7 +8,6 @@ from .gen_router import router as general_router
 from user.views import router as user_router
 from auth.jwt_auth import router as auth_router
 
-
 from core.models.base import Base
 
 from contextlib import asynccontextmanager
