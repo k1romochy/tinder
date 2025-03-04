@@ -7,6 +7,7 @@ services:
         echo 'Waiting for PostgreSQL...';
         sleep 5;
       done;
+      psql -U postgres -d tinder -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
       alembic upgrade head &&
       uvicorn app.run:app --host 0.0.0.0 --port 8000 --reload
       "

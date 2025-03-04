@@ -1,10 +1,8 @@
 from enum import Enum
 from typing import TYPE_CHECKING
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import mapped_column, Mapped, relationship
-from sqlalchemy.ext.declarative import declared_attr
-from geoalchemy2 import Geography  # PostGIS
-
+from geoalchemy2 import Geography
 from .base import Base
 
 if TYPE_CHECKING:
@@ -17,7 +15,7 @@ class Genre(Enum):
 
 
 class Preferences(Base):
-    sex: Mapped[Genre] = mapped_column(nullable=False)
+    sex: Mapped[Genre] = mapped_column(SQLEnum(Genre), nullable=False)
 
     location: Mapped[str] = mapped_column(Geography(geometry_type="POINT", srid=4326), nullable=False)
 
