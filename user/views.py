@@ -41,7 +41,7 @@ async def show_me(current_user = Depends(get_current_user),
 
 
 @router.post('/registrate/upload_photo/{user_id}', response_model=Photo)
-async def upload_photo(current_user = Depends(get_current_user),
+async def upload_photography(current_user = Depends(get_current_user),
                   session: AsyncSession = Depends(db_helper.scoped_session_dependency),
                   file: UploadFile = File(...), ):
     user_id = current_user.id

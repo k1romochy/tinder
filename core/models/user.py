@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import TYPE_CHECKING
 
 from sqlalchemy.orm import mapped_column, Mapped, relationship
@@ -9,12 +10,18 @@ if TYPE_CHECKING:
     from .preferences import Preferences
 
 
+class Genre(Enum):
+    active = 'active'
+    inactive = 'inactive'
+
+
 class User(Base):
     username: Mapped[str] = mapped_column(nullable=False)
     password: Mapped[bytes] = mapped_column(nullable=False)
     email: Mapped[str] = mapped_column(unique=True)
     role: Mapped[str] = mapped_column(nullable=False, server_default='User')
     photo: Mapped[str | None] = mapped_column(server_default=None)
+    active: Mapped[Enum] = mapped_column(server_default='active')
 
     session: Mapped['SessionModel'] = relationship('SessionModel', back_populates='user',
                                                     cascade="all, delete-orphan")
