@@ -13,11 +13,8 @@ from geoalchemy2.shape import to_shape
 from core.models import User, Preferences
 from user.schemas import UserCreate, UserModel, GeoPoint
 
+from clients.redis import redis_client
 
-load_dotenv()
-
-AWS_BUCKET_NAME = os.getenv('AWS_BUCKET_NAME')
-AWS_REGION = os.getenv('AWS_REGION')
 
 
 async def get_users(session: AsyncSession):
@@ -71,7 +68,7 @@ async def get_user_by_id(session: AsyncSession, user_id: int):
 
 
 async def get_user_by_username(username: str, session: AsyncSession) -> User:
-    stmt = select(User).where(User.username == username)
+    stmt = select(User).options(selectinload(User.preferences)).where(User.username == username)
     result = await session.execute(stmt)
 
     user = result.scalar_one_or_none()
@@ -108,9 +105,19 @@ async def registrate_user(user: UserModel, session: AsyncSession):
 
     session.add(user_db)
     await session.commit()
-    await session.refresh(user_db)
+    await session.refresh(user_db, ['preferences'])
 
-    return user_db
+    return {
+        "id": user_db.id,
+        "username": user_db.username,
+        "email": user_db.email,
+        "preferences": {
+            "sex": user_db.preferences.sex,
+            "location": postgis_to_geopoint(user_db.preferences.location),
+            "age_min": user_db.preferences.age_min,
+            "age_max": user_db.preferences.age_max
+        }
+    }
 
 
 def postgis_to_geopoint(postgis_point) -> Optional[GeoPoint]:
@@ -123,23 +130,22 @@ def postgis_to_geopoint(postgis_point) -> Optional[GeoPoint]:
 
 
 async def get_me(user_id: int, session: AsyncSession):
+    user = await redis_client.get(f'user:{user_id}')
+    if user:
+        return user
     result = await session.execute(select(User).options(selectinload(User.preferences)).where(User.id == user_id))
     user = result.scalars().first()
-
-    if user:
-        user_model = UserModel(
-            username=user.username,
-            email=user.email,
-            preferences={
-                "sex": user.preferences.sex,
-                "location": postgis_to_geopoint(user.preferences.location),
-                "age_min": user.preferences.age_min,
-                "age_max": user.preferences.age_max
-            }
-        )
-        return user_model
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user_model = UserModel(
+        username=user.username,
+        email=user.email,
+        preferences={
+            "sex": user.preferences.sex,
+            "location": postgis_to_geopoint(user.preferences.location),
+            "age_min": user.preferences.age_min,
+            "age_max": user.preferences.age_max
+        }
+    )
+    return user_model
 
 
 async def upload_photo(user_id, session: AsyncSession, file):

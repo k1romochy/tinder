@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 
 from auth.crud import get_current_user
 from core.models.db_helper import db_helper
-from user.schemas import UserCreate, User, UserModel, Photo
+from user.schemas import UserCreate, User, UserModel, Photo, UserCreateResponse
 from user import crud as user
 
 
@@ -26,7 +26,7 @@ async def get_user(user_id: int,
 
 
 @router.post('/registrate/', response_model=UserCreate)
-async def register_user(user_in: UserCreate,
+async def register_user(user_in: UserCreateResponse,
                         session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
     try:
         return await user.registrate_user(user=user_in, session=session)

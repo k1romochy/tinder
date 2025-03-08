@@ -55,3 +55,7 @@ class UserCreate(UserModel):
 
 class Photo(BaseModel):
     url: str
+
+
+class UserCreateResponse(UserModel):
+    pass
