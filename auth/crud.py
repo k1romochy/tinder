@@ -35,7 +35,7 @@ async def validate_auth_user(
     return user
 
 
-async def get_current_user(
+async def get_current_user_id(
     session_id: str = Cookie(None),
     session: AsyncSession = Depends(db_helper.scoped_session_dependency),
 ):
@@ -43,7 +43,44 @@ async def get_current_user(
         user = redis_client.hgetall(f'session:{session_id}')
         if user:
             user['user_id'] = int(user['user_id'])
-            return user
+            return user['user_id']
+        else:
+            result = await session.execute(select(User).where(User.id == session_id))
+            user = result.scalar_one_or_none()
+            if user:
+                redis_client.hset(f'session:{session_id}', mapping={'user_id': user.id})
+                return user.id
+            else:
+                return None
+
+
+async def get_current_user(
+    session_id: str = Cookie(None),
+    session: AsyncSession = Depends(db_helper.scoped_session_dependency),
+):
+    if session_id:
+        redis_user = redis_client.hgetall(f'session:{session_id}')
+        if redis_user and 'user_id' in redis_user:
+            return {
+                'user_id': int(redis_user['user_id']),
+                'username': redis_user.get('username', ''),
+                'email': redis_user.get('email', '')
+            }
+        
+        user_id = await get_current_user_id(session_id=session_id, session=session)
+        if user_id:
+            result = await session.execute(select(User).where(User.id == user_id))
+            user = result.scalar_one_or_none()
+            if user:
+                user_data = {
+                    'user_id': user.id,
+                    'username': user.username,
+                    'email': user.email
+                }
+                redis_client.hset(f'session:{session_id}', mapping=user_data)
+                return user_data
+    
+    return None
 
 
 async def create_session(user_id: int, session_id: str, session: AsyncSession):

@@ -3,7 +3,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, Form, HTTPException, Response, Cookie
 from auth import utils as auth_utils
-from auth.crud import create_session, delete_session, get_current_user
+from auth.crud import create_session, delete_session, get_current_user, get_current_user_id
 from core.models.db_helper import db_helper
 from auth.jwt_model import Token
 from user.crud import get_user_by_username
