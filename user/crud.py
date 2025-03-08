@@ -11,9 +11,9 @@ from geoalchemy2 import WKTElement
 from geoalchemy2.shape import to_shape
 
 from core.models import User, Preferences
-from user.schemas import UserCreate, UserModel, GeoPoint
+from user.schemas import UserModel, GeoPoint
 
-from clients.redis import redis_client
+from clients.redis.RedisClient import redis_client
 
 
 
@@ -21,7 +21,6 @@ async def get_users(session: AsyncSession):
     result = await session.execute(select(User).options(selectinload(User.preferences)).order_by(User.id))
     users = result.scalars().all()
     
-    # Преобразуем географические данные для каждого пользователя
     user_list = []
     for user in users:
         user_dict = {
