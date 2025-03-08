@@ -2,6 +2,7 @@ import uvicorn
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from core.models.db_helper import db_helper
 from .gen_router import router as general_router
@@ -23,6 +24,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan = lifespan)
 
+# Монтируем статические файлы
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(general_router)
 app.include_router(auth_router)

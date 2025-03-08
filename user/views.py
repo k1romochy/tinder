@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, File
+from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
-from starlette.datastructures import UploadFile
+from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 
 from auth.crud import get_current_user
 from core.models.db_helper import db_helper
@@ -36,14 +37,28 @@ async def register_user(user_in: UserCreate,
 @router.get('/show/me/', response_model=UserModel)
 async def show_me(current_user = Depends(get_current_user),
                   session: AsyncSession = Depends(db_helper.scoped_session_dependency)):
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Необходима аутентификация"
+        )
+        
     user_id = current_user['user_id']
     return await user.get_me(user_id=user_id, session=session)
 
 
-@router.post('/registrate/upload_photo/{user_id}', response_model=Photo)
-async def upload_photography(current_user = Depends(get_current_user),
-                  session: AsyncSession = Depends(db_helper.scoped_session_dependency),
-                  file: UploadFile = File(...), ):
-    user_id = current_user.id
-    return await user.upload_photo(user_id=user_id, session=session, file=file)
-
+@router.post('/registrate/upload_photo/')
+async def upload_photography(
+    current_user = Depends(get_current_user),
+    session: AsyncSession = Depends(db_helper.scoped_session_dependency),
+    file: UploadFile = File()
+):
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Необходима аутентификация"
+        )
+    
+    user_id = current_user['user_id']
+    result = await user.upload_photo(user_id=user_id, session=session, file=file)
+    return result

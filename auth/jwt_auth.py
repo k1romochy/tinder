@@ -9,6 +9,7 @@ from auth.jwt_model import Token
 from user.crud import get_user_by_username
 from user.schemas import UserModel
 from clients.redis.RedisClient import redis_client
+from fastapi import status
 
 router = APIRouter(prefix='/auth', tags=['auth'])
 COOKIE_SESSION_ID_KEY = 'session_id'
@@ -42,6 +43,12 @@ async def auth_user_jwt(
 
 @router.get('/me/')
 async def get_me(current_user: dict = Depends(get_current_user)):
+    if not current_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Необходима аутентификация"
+        )
+        
     return {
         'username': current_user["username"],
         'user_id': current_user["user_id"]
