@@ -3,10 +3,10 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, Form, HTTPException, Response, Cookie
 from auth import utils as auth_utils
-from auth.crud import create_session, delete_session, get_current_user, get_current_user_id
+from auth import crud as auth_crud
 from core.models.db_helper import db_helper
 from auth.jwt_model import Token
-from user.crud import get_user_by_username
+from user import crud as user_crud
 from user.schemas import UserModel
 from clients.redis.RedisClient import redis_client
 from fastapi import status
@@ -22,7 +22,7 @@ async def auth_user_jwt(
     password: str = Form(...),
     session: AsyncSession = Depends(db_helper.scoped_session_dependency),
 ):
-    user = await get_user_by_username(username=username, session=session)
+    user = await user_crud.get_user_by_username(username=username, session=session)
 
     if not user or not auth_utils.validate_password(password, user.password):
         raise HTTPException(status_code=401, detail="Invalid username or password")
@@ -31,8 +31,8 @@ async def auth_user_jwt(
     token = auth_utils.encode_jwt(jwt_payload)
 
     session_id = str(uuid.uuid4())
-    await create_session(user.id, session_id, session)
-    redis_client.hset(f'session:{session_id}', mapping={'username': f'{user.username}',
+    await auth_crud.create_session(user.id, session_id, session)
+    await redis_client.hset(f'session:{session_id}', mapping={'username': f'{user.username}',
                                                         'user_id': user.id,
                                                         'email': f'{user.email}'})
 
@@ -40,9 +40,17 @@ async def auth_user_jwt(
 
     return Token(access_token=token, token_type="Bearer")
 
+async def get_current_user_dependency(
+    session_id: str = Cookie(None),
+    session: AsyncSession = Depends(db_helper.scoped_session_dependency),
+):
+    from auth.crud import get_current_user
+    return await get_current_user(session_id=session_id, session=session)
+
+
 
 @router.get('/me/')
-async def get_me(current_user: dict = Depends(get_current_user)):
+async def get_me(current_user = Depends(get_current_user_dependency)):
     if not current_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -63,10 +71,11 @@ async def logout(
 ):
 
     if session_id:
-        await delete_session(session_id, session)
-        user_id = redis_client.hget(f'session:{session_id}', "user_id")
-        redis_client.delete(f'session:{session_id}')
-        redis_client.delete(f'user:{user_id}')
+        await auth_crud.delete_session(session_id, session)
+        user_id = await redis_client.hget(f'session:{session_id}', "user_id")
+        await redis_client.delete(f'session:{session_id}')
+        await redis_client.delete(f'user:{user_id}')
 
     response.delete_cookie("session_id")
     return {"message": "Logged out successfully"}
+

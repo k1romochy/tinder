@@ -5,7 +5,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends, Form, HTTPException, status, Cookie
 from fastapi.security import HTTPBearer
-from sqlalchemy.orm import joinedload
 
 from auth import utils as auth_utils
 from core.config import settings
@@ -40,15 +39,27 @@ async def get_current_user_id(
     session: AsyncSession = Depends(db_helper.scoped_session_dependency),
 ):
     if session_id:
-        user = redis_client.hgetall(f'session:{session_id}')
-        if user:
-            user['user_id'] = int(user['user_id'])
-            return user['user_id']
+        user = await redis_client.hgetall(f'session:{session_id}')
+        if user and 'user_id' in user:
+            try:
+                return int(user['user_id'])
+            except ValueError:
+                result = await session.execute(select(User).where(User.username == user.get('username')))
+                db_user = result.scalar_one_or_none()
+                if db_user:
+                    await redis_client.hset(f'session:{session_id}', mapping={'user_id': db_user.id})
+                    return db_user.id
+                return None
         else:
-            result = await session.execute(select(User).where(User.id == session_id))
+            try:
+                user_id = int(session_id)
+                result = await session.execute(select(User).where(User.id == user_id))
+            except ValueError:
+                result = await session.execute(select(User).where(User.id == session_id))
+            
             user = result.scalar_one_or_none()
             if user:
-                redis_client.hset(f'session:{session_id}', mapping={'user_id': user.id})
+                await redis_client.hset(f'session:{session_id}', mapping={'user_id': user.id})
                 return user.id
             else:
                 return None
@@ -59,7 +70,7 @@ async def get_current_user(
     session: AsyncSession = Depends(db_helper.scoped_session_dependency),
 ):
     if session_id:
-        redis_user = redis_client.hgetall(f'session:{session_id}')
+        redis_user = await redis_client.hgetall(f'session:{session_id}')
         if redis_user and 'user_id' in redis_user:
             return {
                 'user_id': int(redis_user['user_id']),
@@ -77,7 +88,7 @@ async def get_current_user(
                     'username': user.username,
                     'email': user.email
                 }
-                redis_client.hset(f'session:{session_id}', mapping=user_data)
+                await redis_client.hset(f'session:{session_id}', mapping=user_data)
                 return user_data
     
     return None

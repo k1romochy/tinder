@@ -8,6 +8,7 @@ from core.models.db_helper import db_helper
 from .gen_router import router as general_router
 from user.views import router as user_router
 from auth.jwt_auth import router as auth_router
+from clients.redis.RedisClient import init_redis, close_redis
 
 from core.models.base import Base
 
@@ -18,13 +19,17 @@ from contextlib import asynccontextmanager
 async def lifespan(app: FastAPI):
     async with db_helper.engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    
+    await init_redis()
 
     yield
+    
+    await close_redis()
 
 
 app = FastAPI(lifespan = lifespan)
 
-# Монтируем статические файлы
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(general_router)

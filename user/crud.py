@@ -11,9 +11,11 @@ from geoalchemy2 import WKTElement
 from geoalchemy2.shape import to_shape
 
 from core.models import User, Preferences
-from user.schemas import UserModel, GeoPoint
+from user.schemas import UserModel, GeoPoint, UserShowMe
 
 from clients.redis.RedisClient import redis_client
+
+from auth.jwt_auth import auth_user_jwt
 
 
 
@@ -86,7 +88,6 @@ async def registrate_user(user: UserModel, session: AsyncSession):
 
     hashed_password = bcrypt.hashpw(user.password.encode(), bcrypt.gensalt())
 
-    # Преобразуем GeoPoint в формат для PostGIS
     location_wkt = user.preferences.location.to_wkt()
     location_postgis = WKTElement(location_wkt, srid=4326)
 
@@ -105,7 +106,7 @@ async def registrate_user(user: UserModel, session: AsyncSession):
     session.add(user_db)
     await session.commit()
     await session.refresh(user_db, ['preferences'])
-
+    
     return {
         "id": user_db.id,
         "username": user_db.username,
@@ -129,20 +130,18 @@ def postgis_to_geopoint(postgis_point) -> Optional[GeoPoint]:
 
 
 async def get_me(user_id: int, session: AsyncSession):
-    user = await redis_client.get(f'user:{user_id}')
-    if user:
-        return user
     result = await session.execute(select(User).options(selectinload(User.preferences)).where(User.id == user_id))
     user = result.scalars().first()
-    user_model = UserModel(
+    user_model = UserShowMe(
         username=user.username,
         email=user.email,
+        photo=user.photo if user.photo else None,
         preferences={
             "sex": user.preferences.sex,
             "location": postgis_to_geopoint(user.preferences.location),
             "age_min": user.preferences.age_min,
             "age_max": user.preferences.age_max
-        }
+        },
     )
     return user_model
 
@@ -160,7 +159,9 @@ async def upload_photo(user_id, session: AsyncSession, file):
         buffer.write(file.file.read())
 
     file_url = f"/static/users/{user_id}.{file_extension}"
-    user.photo_url = file_url
+    await session.flush()
+    user.photo = file_url
+    session.add(user)
     await session.commit()
 
     return {"photo_url": file_url}

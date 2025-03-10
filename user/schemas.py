@@ -59,3 +59,7 @@ class Photo(BaseModel):
 
 class UserCreateResponse(UserModel):
     pass
+
+
+class UserShowMe(UserModel):
+    photo: Optional[str] = None
