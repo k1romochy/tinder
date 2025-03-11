@@ -43,3 +43,6 @@ starlette==0.45.3
 typing_extensions==4.12.2
 urllib3==2.3.0
 uvicorn==0.34.0
+celery==5.3.6
+kafka-python==2.0.2
+confluent-kafka==2.3.0

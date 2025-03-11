@@ -23,6 +23,7 @@ class User(Base):
     role: Mapped[str] = mapped_column(nullable=False, server_default='User')
     photo: Mapped[str | None] = mapped_column(server_default=None)
     active: Mapped[Active] = mapped_column(SQLEnum(Active), nullable=False, default=Active.active)
+    description: Mapped[str | None] = mapped_column(nullable=True)
 
     session: Mapped['SessionModel'] = relationship('SessionModel', back_populates='user',
                                                     cascade="all, delete-orphan")

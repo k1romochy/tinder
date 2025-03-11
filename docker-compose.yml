@@ -18,12 +18,69 @@ services:
     depends_on:
       - postgres
       - redis
+      - kafka
     networks:
       - network
     ports:
       - "8000:8000"
     volumes:
       - ./:/tinder/
+
+  celery_worker:
+    build: .
+    command: celery -A core.celery_app.celery worker --loglevel=info
+    env_file:
+      - ./.env
+    volumes:
+      - ./:/tinder/
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - network
+
+  celery_beat:
+    build: .
+    command: celery -A core.celery_app.celery beat --loglevel=info
+    env_file:
+      - ./.env
+    volumes:
+      - ./:/tinder/
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+      - celery_worker
+    networks:
+      - network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper_tinder
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - network
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka_tinder
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - network
 
   postgres:
     image: postgis/postgis:latest
