@@ -5,10 +5,10 @@ from starlette import status
 from typing import List, Dict, Any
 
 from auth.crud import get_current_user_id
-from core.models.db_helper import db_helper
+from shared.core.models.db_helper import db_helper
 from user.schemas import UserCreate, User, UserModel, Photo
 from stack_partners import crud as prt
-from clients.redis.RedisClient import redis_cache
+from shared.clients.redis.RedisClient import redis_cache
 from stack_partners.tasks import _get_recommendations_for_user
 
 

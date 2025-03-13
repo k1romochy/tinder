@@ -3,8 +3,8 @@ import os
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from alembic import context
-from core.config import settings
-from core.models.base import Base
+from shared.core.config import settings
+from shared.core.models.base import Base
 
 import sys
 import os

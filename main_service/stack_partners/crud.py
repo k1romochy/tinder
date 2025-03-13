@@ -9,10 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status, File
 from sqlalchemy.orm import selectinload, joinedload
 
-from core.models import User, Preferences
+from shared.core.models import User, Preferences
 from user.schemas import UserCreate, UserModel
 
-from clients.s3.S3Client import s3_client
+from shared.clients.s3.S3Client import s3_client
 
 
 async def get_users_with_preferences(user_id: int):

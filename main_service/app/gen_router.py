@@ -5,7 +5,7 @@ router = APIRouter(tags=['General'])
 
 
 @router.get('/')
-async def show_me():
+async def AAAAAAAAAAAA_me():
     return {
         'message': 'Succefull'
     }

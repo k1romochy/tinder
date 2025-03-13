@@ -4,11 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, Form, HTTPException, Response, Cookie
 from auth import utils as auth_utils
 from auth import crud as auth_crud
-from core.models.db_helper import db_helper
+from shared.core.models.db_helper import db_helper
 from auth.jwt_model import Token
 from user import crud as user_crud
 from user.schemas import UserModel
-from clients.redis.RedisClient import redis_client
+from shared.clients.redis.RedisClient import redis_client
 from fastapi import status
 
 router = APIRouter(prefix='/auth', tags=['auth'])

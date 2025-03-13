@@ -7,12 +7,12 @@ from fastapi import Depends, Form, HTTPException, status, Cookie
 from fastapi.security import HTTPBearer
 
 from auth import utils as auth_utils
-from core.config import settings
-from core.models import SessionModel
-from core.models.db_helper import db_helper
-from core.models.user import User
+from shared.core.config import settings
+from shared.core.models import SessionModel
+from shared.core.models.db_helper import db_helper
+from shared.core.models.user import User
 from user.crud import get_user_by_username
-from clients.redis.RedisClient import redis_client
+from shared.clients.redis.RedisClient import redis_client
 
 load_dotenv()
 

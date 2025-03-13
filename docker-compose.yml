@@ -1,6 +1,8 @@
 services:
-  server:
-    build: .
+  api_service:
+    build: 
+      context: .
+      dockerfile: main_service/Dockerfile
     command: >
       sh -c "
       echo 'Waiting for PostgreSQL...' &&
@@ -10,7 +12,7 @@ services:
       done &&
       echo 'PostgreSQL is ready!' &&
       alembic upgrade head &&
-      uvicorn app.run:app --host 0.0.0.0 --port 8000 --reload
+      uvicorn main_service.app.run:app --host 0.0.0.0 --port 8000 --reload
       "
     env_file:
       - ./.env
@@ -24,15 +26,48 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./:/tinder/
+      - ./:/app/
+
+  likes_service:
+    build:
+      context: .
+      dockerfile: likes_service/Dockerfile
+    command: >
+      sh -c "
+      echo 'Waiting for PostgreSQL and Kafka...' &&
+      until pg_isready -h postgres -p 5432 -q; do
+        echo 'Waiting for PostgreSQL...';
+        sleep 5;
+      done &&
+      echo 'PostgreSQL is ready!' &&
+      until nc -z kafka 9092; do
+        echo 'Waiting for Kafka...';
+        sleep 5;
+      done &&
+      echo 'Kafka is ready!' &&
+      python -m likes_service.app.main
+      "
+    env_file:
+      - ./.env
+    restart: always
+    depends_on:
+      - postgres
+      - redis
+      - kafka
+    networks:
+      - network
+    volumes:
+      - ./:/app/
 
   celery_worker:
-    build: .
-    command: celery -A core.celery_app.celery worker --loglevel=info
+    build: 
+      context: .
+      dockerfile: main_service/Dockerfile
+    command: celery -A shared.clients.celery.celery_app worker --loglevel=info
     env_file:
       - ./.env
     volumes:
-      - ./:/tinder/
+      - ./:/app/
     depends_on:
       - postgres
       - redis
@@ -41,12 +76,14 @@ services:
       - network
 
   celery_beat:
-    build: .
-    command: celery -A core.celery_app.celery beat --loglevel=info
+    build: 
+      context: .
+      dockerfile: main_service/Dockerfile
+    command: celery -A shared.clients.celery.celery_app beat --loglevel=info
     env_file:
       - ./.env
     volumes:
-      - ./:/tinder/
+      - ./:/app/
     depends_on:
       - postgres
       - redis
@@ -108,7 +145,7 @@ services:
       - network
     volumes:
       - redis_data:/data
-      - ./redis.conf:/etc/redis/redis.conf
+      - ./main_service/redis.conf:/etc/redis/redis.conf
 
   pgadmin:
     image: dpage/pgadmin4

@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 
 import bcrypt
 import jwt
-from core.config import settings
+from shared.core.config import settings
 
 
 def get_private_key() -> str:

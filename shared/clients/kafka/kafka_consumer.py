@@ -69,4 +69,3 @@ class KafkaConsumer:
         finally:
             self.consumer.close()
             logger.info("Потребитель закрыт") 
-            

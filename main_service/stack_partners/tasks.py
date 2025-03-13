@@ -5,9 +5,9 @@ from typing import List, Dict, Any
 from celery import shared_task
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.models.db_helper import db_helper
-from core.kafka_producer import kafka_producer
-from clients.redis.RedisClient import redis_cache
+from shared.core.models.db_helper import db_helper
+from shared.clients.kafka.kafka_producer import kafka_producer
+from shared.clients.redis.RedisClient import redis_cache
 from stack_partners import crud
 
 from stack_partners.schemas import UserRecomendationResponse

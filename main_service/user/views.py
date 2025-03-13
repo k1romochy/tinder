@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from auth.crud import get_current_user_id
-from core.models.db_helper import db_helper
+from shared.core.models.db_helper import db_helper
 from user.schemas import UserCreate, User, UserModel, Photo, UserCreateResponse, UserShowMe
 from user import crud as user
 from auth.jwt_auth import auth_user_jwt

@@ -10,10 +10,10 @@ from sqlalchemy.orm import selectinload
 from geoalchemy2 import WKTElement
 from geoalchemy2.shape import to_shape
 
-from core.models import User, Preferences
+from shared.core.models import User, Preferences
 from user.schemas import UserModel, GeoPoint, UserShowMe
 
-from clients.redis.RedisClient import redis_client
+from shared.clients.redis.RedisClient import redis_client
 
 from auth.jwt_auth import auth_user_jwt
 
