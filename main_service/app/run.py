@@ -9,6 +9,7 @@ from .gen_router import router as general_router
 from user.views import router as user_router
 from auth.jwt_auth import router as auth_router
 from shared.clients.redis.RedisClient import init_redis, close_redis
+from shared.clients.kafka.async_kafka_producer import async_kafka_producer
 
 from shared.core.models.base import Base
 
@@ -21,9 +22,14 @@ async def lifespan(app: FastAPI):
         await conn.run_sync(Base.metadata.create_all)
     
     await init_redis()
+    
+    async_kafka_producer.start()
+    
     yield
     
     await close_redis()
+    
+    await async_kafka_producer.stop()
 
 
 app = FastAPI(lifespan = lifespan)

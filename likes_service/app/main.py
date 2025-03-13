@@ -2,6 +2,7 @@ import asyncio
 import logging
 import os
 from shared.clients.kafka.kafka_manager import kafka_manager
+from shared.clients.kafka.async_kafka_producer import async_kafka_producer
 from likes_service.handlers.like_handlers import handle_user_like, handle_user_unlike
 
 
@@ -17,10 +18,12 @@ LIKE_SERVICE_GROUP_ID = "likes_service"
 
 USER_LIKES_TOPIC = "user_likes"
 USER_UNLIKES_TOPIC = "user_unlikes"
-USER_MATCHES_TOPIC = "user_matches"
+
 
 async def setup_and_run():
     logger.info("Запуск сервиса лайков...")
+    
+    async_kafka_producer.start()
     
     await kafka_manager.add_consumer(
         topic=USER_LIKES_TOPIC,
@@ -45,7 +48,10 @@ async def setup_and_run():
         logger.info("Получен сигнал остановки")
     finally:
         await kafka_manager.stop_all()
+        await async_kafka_producer.stop()
+        
         logger.info("Сервис лайков остановлен")
+
 
 if __name__ == "__main__":
     asyncio.run(setup_and_run()) 

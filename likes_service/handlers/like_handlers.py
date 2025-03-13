@@ -5,14 +5,12 @@ import asyncio
 from datetime import datetime
 from sqlalchemy import select
 
-from shared.clients.kafka.kafka_producer import KafkaProducer
+from shared.clients.kafka.async_kafka_producer import async_kafka_producer, send_message
 from shared.core.models.db_helper import db_helper
 from shared.core.models.user import User
 from shared.core.models.like import Like, Match
 
 logger = logging.getLogger(__name__)
-
-kafka_producer = KafkaProducer(bootstrap_servers='kafka:9092')
 
 USER_MATCHES_TOPIC = "user_matches"
 
@@ -24,6 +22,7 @@ async def handle_user_like(message: Dict[str, Any]) -> None:
         message: Сообщение с данными о лайке
     """
     try:
+        # Извлекаем данные из сообщения
         from_user_id = message.get("from_user_id")
         to_user_id = message.get("to_user_id")
         timestamp = message.get("timestamp", datetime.now().isoformat())
@@ -34,6 +33,7 @@ async def handle_user_like(message: Dict[str, Any]) -> None:
             
         logger.info(f"Обработка лайка от пользователя {from_user_id} к пользователю {to_user_id}")
         
+        # Проверяем наличие взаимного лайка
         async with db_helper.get_session() as session:
             # Проверяем, существует ли уже лайк
             stmt = select(Like).where(
@@ -105,10 +105,11 @@ async def handle_user_like(message: Dict[str, Any]) -> None:
                     # Сохраняем изменения
                     await session.commit()
                     
-                    # Отправляем событие матча
-                    await kafka_producer.send(
+                    # Отправляем событие в топик матчей (асинхронно)
+                    await send_message(
                         topic=USER_MATCHES_TOPIC,
-                        value=json.dumps(match_event).encode('utf-8')
+                        value=match_event,
+                        key=match_id
                     )
                     
                     logger.info(f"Отправлено событие матча: {match_id}")

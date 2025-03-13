@@ -6,7 +6,7 @@ from celery import shared_task
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.core.models.db_helper import db_helper
-from shared.clients.kafka.kafka_producer import kafka_producer
+from shared.clients.kafka.async_kafka_producer import async_kafka_producer, kafka_send_message
 from shared.clients.redis.RedisClient import redis_cache
 from stack_partners import crud
 
@@ -39,7 +39,7 @@ async def _generate_user_recommendations_async() -> int:
                     cache_key = f"user:{user_id}:recommendations"
                     redis_cache.set(cache_key, recommended_users, expiration=86400)
                     
-                    kafka_producer.produce(
+                    await kafka_send_message(
                         topic="user_recommendations",
                         key=str(user_id),
                         value={
@@ -63,6 +63,7 @@ async def _get_all_users(session: AsyncSession) -> List[int]:
 
 async def _get_recommendations_for_user(session: AsyncSession, user_id: int) -> List[UserRecomendationResponse]:
     result = []
+    nearby_user_ids = []
     for nearby_id in nearby_user_ids:
         result.append(UserRecomendationResponse(
             id=nearby_id,
